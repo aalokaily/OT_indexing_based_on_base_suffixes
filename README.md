@@ -1,5 +1,4 @@
-# Searching for a string under any internal node in suffix trees
-
+#A Novel Nonlinear Index for Logarithmic Search Time for Any String under Any Internal Node in Suffix Trees
 Suffix trees are key and efficient data structures for solving string problems. A suffix tree is a compressed trie containing all the suffixes of a given string of length $n$, constructed in linear time. In this work, we introduce an algorithm to build a nonlinear index that enables finding any string of any length under any internal node in a suffix tree in $O(\log_2 n)$ time.
 
 ------------------------------------------------------------- Prerequisite ---------------------------------------------------------------

@@ -76,7 +76,7 @@ Found matching node 12407-8
 
 Using OT index:
 ```python
-python3 Search_using_OT_index.py converted_fasta_file.oneline
+python3 Search_using_OT_index_based_on_base_suffixes_trivial.py converted_fasta_file.oneline MPA
 ```
 
 Sample Output

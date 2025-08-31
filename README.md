@@ -38,7 +38,7 @@ The input for the tools is the converted fasta file. What strings are searched f
 Using the walk process:
 
 ```python
-python3 Search_by_walk.py converted_fasta_file.oneline
+python3 Search_using_walk_algorithm.py converted_fasta_file.oneline
 ```
 
 Sample Output

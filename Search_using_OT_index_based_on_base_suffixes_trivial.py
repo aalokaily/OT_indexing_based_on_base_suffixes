@@ -242,8 +242,7 @@ def Build_OT_index(tree):
                 current_node.right_OT_index = OT_index_counter
 
         # Reporting
-        print("Left and right OT index of root for OSHR nodes:", 
-              tree.root.left_OT_index + 1, "{:,}".format(tree.root.right_OT_index))
+        print("Left and right OT index of root for OSHR nodes:", tree.root.left_OT_index + 1, "{:,}".format(tree.root.right_OT_index))
         print("Sum_of_OT_indexes", "{:,}".format(Sum_of_OT_indexes))
 
 

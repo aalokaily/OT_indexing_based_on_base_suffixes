@@ -4,10 +4,10 @@ import time
 import math
 import sys 
 import bisect 
- 
+from array import array
+
  
 def Build_suffix_tree():
-    global tree
     
     input_file = sys.argv[1]    
     text = ""
@@ -16,7 +16,8 @@ def Build_suffix_tree():
             if line[0] != ">":
                 text += line.strip()
     
-    tree = STree.STree(text)
+    return STree.STree(text)
+    
 
     
 
@@ -63,7 +64,7 @@ def Build_OT_index(tree):
                         maximum_h_values = h
                    
                 else:
-                    setattr(current_node, "OT_indexes", [])
+                    setattr(current_node, "OT_indexes", array('i'))
                     tree.number_internal_nodes += 1
                     
                     # build SLS
@@ -131,13 +132,13 @@ def Build_OT_index(tree):
                                 if bottom_node == top_node:
                                     if current_node.parent == tree.root:  # special root case
                                         if not hasattr(bottom_node, "List_of_base_suffixes"):
-                                            setattr(bottom_node, "List_of_base_suffixes", [])
+                                            setattr(bottom_node, "List_of_base_suffixes", array('i'))
                                         bottom_node.List_of_base_suffixes.append(leaf_node_of_next_suffix_index.idx + bottom_node.depth)
                                         number_of_base_suffixes_derived_from_reference_leaf_node += 1
                                     break
                                 else:
                                     if not hasattr(bottom_node, "List_of_base_suffixes"):
-                                        setattr(bottom_node, "List_of_base_suffixes", [])
+                                        setattr(bottom_node, "List_of_base_suffixes", array('i'))
                                     bottom_node.List_of_base_suffixes.append(leaf_node_of_next_suffix_index.idx + bottom_node.depth)
                                     number_of_base_suffixes_derived_from_reference_leaf_node += 1
                                     bottom_node = bottom_node.parent
@@ -148,7 +149,7 @@ def Build_OT_index(tree):
                         for reference_internal_node in current_node.List_of_reference_internal_nodes:
                             for leaf_node in get_leaf_nodes(tree, reference_internal_node):
                                 if not hasattr(current_node, "List_of_base_suffixes"):
-                                    setattr(current_node, "List_of_base_suffixes", [])
+                                    setattr(current_node, "List_of_base_suffixes", array('i'))
 
                                 leaf_node_index = leaf_node.idx
                                 current_node.List_of_base_suffixes.append(leaf_node_index + 1 + current_node.depth)
@@ -159,7 +160,7 @@ def Build_OT_index(tree):
         bottom_node = tree.M[0].parent
         while bottom_node != tree.root:
             if not hasattr(bottom_node, "List_of_base_suffixes"):
-                setattr(bottom_node, "List_of_base_suffixes", [])
+                setattr(bottom_node, "List_of_base_suffixes", array('i'))
             bottom_node.List_of_base_suffixes.append(0 + bottom_node.depth)
             number_of_base_suffixes_derived_from_reference_leaf_node += 1
             cost += 1
@@ -173,14 +174,14 @@ def Build_OT_index(tree):
                     leaf_node_of_next_suffix_index = tree.M[node.idx + 1]
                     if leaf_node_of_next_suffix_index.parent == tree.root:
                         if not hasattr(current_node, "List_of_base_suffixes"):
-                            setattr(current_node, "List_of_base_suffixes", [])
+                            setattr(current_node, "List_of_base_suffixes", array('i'))
                         current_node.List_of_base_suffixes.append(leaf_node_of_next_suffix_index.idx)
                         cost += 1
             else:
                 if node._suffix_link != tree.root:
                     for leaf_node in get_leaf_nodes(tree, node):
                         if not hasattr(current_node, "List_of_base_suffixes"):
-                            setattr(current_node, "List_of_base_suffixes", [])
+                            setattr(current_node, "List_of_base_suffixes", array('i'))
                         leaf_node_index = leaf_node.idx
                         current_node.List_of_base_suffixes.append(leaf_node_index + 1)
                         cost += 1
@@ -198,7 +199,9 @@ def Build_OT_index(tree):
 
 
     def Phase_3(tree):
-        # OH mapping base paths and building OT index based on base suffixes.
+        # OH mapping base suffixes and building OT index based on base suffixes.
+        setattr(tree, "OT_index_to_base_suffix_mapper", array('i'))
+        
         OT_index_counter = 0
         Sum_of_OT_indexes = 0
         minimum_pattern_length = int(sys.argv[2])
@@ -222,7 +225,7 @@ def Build_OT_index(tree):
                 
             else:
                 # -------- AFTER visiting children --------
-                OT_index_counter += 1
+                
 
                 # Process base suffixes
                 if current_node != tree.root and hasattr(current_node, "List_of_base_suffixes"):
@@ -233,29 +236,61 @@ def Build_OT_index(tree):
                         last_extent_leaf_node = tree.M[base_suffix]
                         node = last_extent_leaf_node.parent
                         while node.depth >= minimum_pattern_length:
-                            node.OT_indexes.append((OT_index_counter, base_suffix))
-                            OT_index_counter += 1
+                            node.OT_indexes.append(OT_index_counter)
                             Sum_of_OT_indexes += 1
                             node = node.parent
-
+                        
+                        tree.OT_index_to_base_suffix_mapper.append(base_suffix)
+                        OT_index_counter += 1
+                    
+                    delattr(current_node, "List_of_base_suffixes")
+                    
                 # Set right_OT_index at exit
                 current_node.right_OT_index = OT_index_counter
 
         # Reporting
         print("Left and right OT index of root for OSHR nodes:", tree.root.left_OT_index + 1, "{:,}".format(tree.root.right_OT_index))
         print("Sum_of_OT_indexes", "{:,}".format(Sum_of_OT_indexes))
+        print("Length of OT_index_to_base_suffix_mapper", "{:,}".format(len(tree.OT_index_to_base_suffix_mapper)))
 
 
 
         
     start = time.time()
     Phase_3(tree)
-    print ("***** Phase 3, OH mapping base paths, finished in", round((time.time() - start), 5), "seconds\n")
+    print ("***** Phase 3, OH mapping base suffixes, finished in", round((time.time() - start), 5), "seconds\n")
 
     
 
-   
+
+
+
+
 ######################################################################################## Searching code ##############################################################################################################
+   
+def Search_process(starting_node, pattern, end_node_of_pattern_from_root):
+    if pattern[0] in starting_node.transition_links:
+        pos = bisect.bisect_left(end_node_of_pattern_from_root.OT_indexes, starting_node.left_OT_index)
+        if pos < len(end_node_of_pattern_from_root.OT_indexes):
+            OT_index = end_node_of_pattern_from_root.OT_indexes[pos]
+            if OT_index < starting_node.right_OT_index:
+                base_suffix = tree.OT_index_to_base_suffix_mapper[OT_index]
+                matching_node = tree.M[base_suffix - starting_node.depth]
+                required_depth = starting_node.depth + end_node_of_pattern_from_root.depth
+                while matching_node.parent.depth >= required_depth: 
+                    matching_node = matching_node.parent
+                    
+                print ("Found matching node", starting_node, matching_node) #print ("Found matching node", matching_node, "for", pattern, "under node", starting_node)
+            else:
+                print ("No matching node found") 
+        else:
+            print ("No matching node found") 
+    else:       
+        print ("No matching node found") 
+        
+        
+   
+######################################################################################## Auxillary code ##############################################################################################################
     
 def get_leaf_nodes(tree, node):
     results = []
@@ -301,10 +336,6 @@ def get_internal_nodes(tree, node, depth):
                 tree.nodes_by_depth_dict[current_node.depth].append(current_node)
 
 
-
-
-    
-    
     
 def find_end_node_of_exact_match_starting_from_root_node(tree, string):          
     current_visited_node = tree.root
@@ -347,29 +378,12 @@ def find_end_node_of_exact_match_starting_from_root_node(tree, string):
             
 
 
-def start():
-    
-    print ("------------------------------------------------------------------------------------------")
-    start = time.time()   
-    Build_suffix_tree()
-    print ("Building suffix tree took", round((time.time() - start), 5), "seconds")   
-    
-    
-    print ("------------------------------------------------------------------------------------------")
-    start = time.time()
-    Build_OT_index(tree)
-    print ("Building OT index using base suffixes took", round((time.time() - start), 5), "seconds")
-    
-    
-    
-    
-    print ("--------------------------------------------------------------------------------------------------------------------")    
-    print ("Benchmarking process")
-    print ("--------------------------------------------------------------------------------------------------------------------")
-    
+######################################################################################## Benchmarking code ##############################################################################################################
+
+def Benchmarking_process(tree):
     setattr(tree, "nodes_by_depth_dict", defaultdict(list))
-    max_depth_of_tested_nodes = 20      
-    get_internal_nodes(tree, tree.root, max_depth_of_tested_nodes)
+    max_depth_for_testing = 30     
+    get_internal_nodes(tree, tree.root, max_depth_for_testing)
     
     patterns_dict = defaultdict(list)
     number_of_patterns_ends_at_internal_node = 0
@@ -393,9 +407,9 @@ def start():
                     if number_of_patterns == 1000:
                         break
     
-    for depth in range(1, max_depth_of_tested_nodes + 1):
+    for depth in range(1, max_depth_for_testing + 1):
         start_time_for_searching_all_patterns_of_all_lengths = time.time()
-        list_of_starting_nodes = tree.nodes_by_depth_dict[depth][-1000:]
+        list_of_starting_nodes = tree.nodes_by_depth_dict[depth][-10000:]
         Number_of_starting_nodes = len(list_of_starting_nodes)
         
                            
@@ -408,27 +422,38 @@ def start():
                 end_node_of_pattern_from_root = dat[1]
                 
                 for starting_node in list_of_starting_nodes: # the last node is the root node so it was excluded
-                    if pattern[0] in starting_node.transition_links:
-                        pos = bisect.bisect(end_node_of_pattern_from_root.OT_indexes, (starting_node.left_OT_index, ""))
-                        if pos < len(end_node_of_pattern_from_root.OT_indexes):
-                            if end_node_of_pattern_from_root.OT_indexes[pos][0] < starting_node.right_OT_index:
-                                matching_node = tree.M[end_node_of_pattern_from_root.OT_indexes[pos][1] - starting_node.depth]
-                                required_depth = starting_node.depth + end_node_of_pattern_from_root.depth
-                                while matching_node.parent.depth >= required_depth: 
-                                    matching_node = matching_node.parent
-                                print ("Found matching node", starting_node, matching_node) #print ("Found matching node", matching_node, "for", pattern, "under node", starting_node)
-                            else:
-                                print ("No matching node found") 
-                        else:
-                            print ("No matching node found") 
-                    else:       
-                        print ("No matching node found") 
-                
-                            
+                    Search_process(starting_node, pattern, end_node_of_pattern_from_root)                            
 
             print ("Total time for searching for", len(patterns), "patterns of length", pattern_length, "starting from", Number_of_starting_nodes, "nodes out of ", len(tree.nodes_by_depth_dict[depth]), "nodes at depth", depth, "is", round((time.time() - start), 5), "seconds") 
                 
         print ("Total time for searching for", number_of_patterns_ends_at_internal_node, "of all lengths starting from", Number_of_starting_nodes, "nodes out of ", len(tree.nodes_by_depth_dict[depth]), "nodes at depth", depth, "is", round(time.time() - start_time_for_searching_all_patterns_of_all_lengths, 5), "seconds")
         print ()
-           
-start()
+    
+    
+    del patterns_dict
+    
+    
+    
+    
+######################################################################################## Main code ##############################################################################################################
+    
+print ("------------------------------------------------------------------------------------------")
+start = time.time()   
+tree = Build_suffix_tree()
+print ("Building suffix tree took", round((time.time() - start), 5), "seconds")   
+
+
+print ("------------------------------------------------------------------------------------------")
+start = time.time()
+Build_OT_index(tree)
+print ("Building OT index using base suffixes took", round((time.time() - start), 5), "seconds")
+
+
+print ("--------------------------------------------------------------------------------------------------------------------")    
+print ("Benchmarking process")
+Benchmarking_process(tree)
+print ("--------------------------------------------------------------------------------------------------------------------")
+
+
+    
+    

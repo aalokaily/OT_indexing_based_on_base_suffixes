@@ -29,11 +29,9 @@ def Build_OT_index(tree):
         setattr(tree, "number_leaf_nodes", 0)
         setattr(tree, "number_internal_nodes", 0)
         setattr(tree, "M", [-1] * len(tree.word))  # List M as mentioned in the paper
-        setattr(tree.root, "height", 0)
+        setattr(tree.root, "height", 1)
         
-        maximum_h_values = 0
         sum_h_values = 0
-        count_nodes_with_max_h_values = 0
 
         # (node, visited flag)
         nodes_stack = [(tree.root, False)]
@@ -48,8 +46,7 @@ def Build_OT_index(tree):
                 for child_node in current_node.transition_links.values():
                     nodes_stack.append((child_node, False))
                     
-                    if not child_node.is_leaf():
-                        setattr(child_node, "height", current_node.height + 1)
+                    setattr(child_node, "height", current_node.height + 1)
                     
             else:
                 # After visiting children (exit)
@@ -58,10 +55,8 @@ def Build_OT_index(tree):
                     tree.M[current_node.idx] = current_node
                     
                     # compute h values
-                    h = current_node.parent.height
+                    h = current_node.height
                     sum_h_values += h                    
-                    if h > maximum_h_values:
-                        maximum_h_values = h
                    
                 else:
                     setattr(current_node, "OT_indexes", array('i'))
@@ -90,9 +85,7 @@ def Build_OT_index(tree):
         print("Number of leaf nodes is", "{:,}".format(tree.number_leaf_nodes))
         print("Number of internal nodes is", "{:,}".format(tree.number_internal_nodes))
         print("Number of alphabets in the input data", len(tree.root.transition_links) - 1)
-        print ("Maximum h value", maximum_h_values)
         print ("Average h values", int(sum_h_values/tree.number_leaf_nodes))
-        print ("Sum of h values", "{:,}".format(sum_h_values))
                 
         
     start = time.time()    
@@ -454,6 +447,65 @@ print ("Benchmarking process")
 Benchmarking_process(tree)
 print ("--------------------------------------------------------------------------------------------------------------------")
 
-
+# optianal
+def compute_stat_for_OT_indexes_lists(tree):
+    results = defaultdict()
     
+    nodes_stack = [(tree.root, False)]  # (node, visited_flag)
+
+    while nodes_stack:
+        current_node, visited = nodes_stack.pop()
+
+        if not visited:
+            # Push the node again, marked as visited (after children)
+            nodes_stack.append((current_node, True))
+
+            # Push children in reverse sorted order to process left → right
+
+            for child_node in current_node.transition_links.values():
+                nodes_stack.append((child_node, False))
+        else:
+            # After children: collect leaf nodes
+            if hasattr(current_node, "OT_indexes"):
+                l = len(current_node.OT_indexes)
+                if l > 0:
+                    if -1 in results:  # -1 is nickname for all depths
+                        results[-1]["min"] = min(l, results[-1]["min"])
+                        results[-1]["max"] = max(l, results[-1]["max"])
+                        results[-1]["sum"] += l
+                        results[-1]["counter"] += 1
+                    else:
+                        results[-1] = defaultdict(int)
+                        results[-1]["min"] = l
+                        results[-1]["max"] = l
+                        results[-1]["sum"] = l
+                        results[-1]["counter"] = 1
+                        
+                    depth = current_node.depth
+                    if depth in results:
+                        results[depth]["min"] = min(l, results[depth]["min"])
+                        results[depth]["max"] = max(l, results[depth]["max"])
+                        results[depth]["sum"] += l
+                        results[depth]["counter"] += 1
+                    else:
+                        results[depth] = defaultdict(int)
+                        results[depth]["min"] = l
+                        results[depth]["max"] = l
+                        results[depth]["sum"] = l
+                        results[depth]["counter"] = 1 
+                    
+                    
+                    
+                    
+
+    for ele in sorted(results):
+        print (ele, ": min, max, avg: ", str(results[ele]["min"]) + ", " + str(results[ele]["max"]) + ", " + str(int(results[ele]["sum"]/results[ele]["counter"])))
+    
+  
+
+print ("--------------------------------------------------------------------------------------------------------------------")    
+print ("Compute stat for OT indexes lists (optianal)")
+compute_stat_for_OT_indexes_lists(tree)
+print ("--------------------------------------------------------------------------------------------------------------------")
+  
     
